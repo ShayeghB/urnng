@@ -112,10 +112,10 @@ def get_actions(line):
 def clean_number(w):    
     new_w = re.sub('[0-9]{1,}([,.]?[0-9]*)*', 'N', w)
     return new_w
-  
+
 def main(args):
   print('loading model from ' + args.model_file)
-  checkpoint = torch.load(args.model_file)
+  checkpoint = torch.load(args.model_file, map_location=f'cuda:{args.gpu}')
   model = checkpoint['model']
   word2idx = checkpoint['word2idx']
   cuda.set_device(args.gpu)
@@ -125,6 +125,7 @@ def main(args):
   sent_f1 = [] 
   pred_out = open(args.out_file, "w")
   gold_out = open(args.gold_out_file, "w")
+  entropy_out = open(args.out_file+'.entropy', 'w')
   with torch.no_grad():
     for j, gold_tree in enumerate(open(args.data_file, "r")):
       tree = gold_tree.strip()
@@ -144,6 +145,7 @@ def main(args):
       sents = sents.cuda()
       ll_word_all, ll_action_p_all, ll_action_q_all, actions_all, q_entropy = model(
           sents, samples = 1, is_temp = 1, has_eos = False)
+      entropy_out.write(f"{q_entropy[0].item()}\n")
       _, binary_matrix, argmax_spans = model.q_crf._viterbi(model.scores)
       tree = get_tree_from_binary_matrix(binary_matrix[0], len(sent))
       actions = utils.get_actions(tree)

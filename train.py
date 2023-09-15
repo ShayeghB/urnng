@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import os
+from tqdm import tqdm
 
 import argparse
 import json
@@ -118,6 +119,8 @@ def main(args):
                                    count_eos_ppl = args.count_eos_ppl)
   all_stats = [[0., 0., 0.]] #true pos, false pos, false neg for f1 calc
   while epoch < args.num_epochs:
+    print()
+    print('\rEpoch:', epoch, '/', args.num_epochs, end='')
     start_time = time.time()
     epoch += 1  
     if epoch > args.train_q_epochs:
@@ -133,7 +136,7 @@ def main(args):
     num_sents = 0.
     num_words = 0.
     b = 0
-    for i in np.random.permutation(len(train_data)):
+    for i in tqdm(np.random.permutation(len(train_data))):
       if args.kl_warmup > 0:
         kl_pen = min(1., kl_pen + kl_warmup_batch) 
       sents, length, batch_size, gold_actions, gold_spans, gold_binary_trees, other_data = train_data[i]      
@@ -250,7 +253,7 @@ def eval(data, model, samples = 0, count_eos_ppl = 0):
   corpus_f1 = [0., 0., 0.]
   sent_f1 = [] 
   with torch.no_grad():
-    for i in list(reversed(range(len(data)))):
+    for i in tqdm(list(reversed(range(len(data))))):
       sents, length, batch_size, gold_actions, gold_spans, gold_binary_trees, other_data = data[i] 
       if length == 1: # length 1 sents are ignored since URNNG needs at least length 2 sents
         continue
